@@ -1,167 +1,161 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Ember Watcher - A Forest Tale</title>
+    <title>The Ember Watcher - A Forest Saga</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&family=Bubblegum+Sans&display=swap');
-        body { background-color: #f0f7f4; color: #2d3436; font-family: 'Quicksand', sans-serif; overflow-x: hidden; }
-        .font-bubble { font-family: 'Bubblegum Sans', cursive; }
-        .story-card { background: white; border: 4px solid #e2e8f0; border-radius: 3rem; box-shadow: 0 12px 0 0 #cbd5e1; }
-        .nav-btn { background: white; border: 3px solid #e2e8f0; box-shadow: 0 5px 0 0 #cbd5e1; transition: all 0.2s; cursor: pointer; }
-        .nav-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 0 #cbd5e1; }
-        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: 0 5px 0 0 #cbd5e1 !important; }
-        #launch-pad { position: fixed; inset: 0; background: #2d5a27; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;700&display=swap');
+        :root { --bg-main: #faf8f5; --text-dark: #1c1917; --amber-500: #f59e0b; }
+        body { background-color: var(--bg-main); color: var(--text-dark); font-family: 'Inter', sans-serif; overflow-x: hidden; touch-action: pan-y; }
+        .font-serif { font-family: 'Crimson Pro', serif; }
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #launch-pad { position: fixed; inset: 0; background: var(--text-dark); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.6s; }
     </style>
 </head>
-<body class="antialiased">
+<body class="antialiased selection:bg-amber-100">
 
-    <!-- Startup Overlay -->
     <div id="launch-pad">
-        <div class="text-6xl mb-6">🦊</div>
-        <h1 class="text-4xl md:text-5xl font-bubble text-white mb-2">The Ember Watcher</h1>
-        <p class="text-emerald-200 text-sm font-bold uppercase tracking-widest mb-10">A Cute Interactive Story</p>
-        <button id="start-btn" class="px-12 py-5 bg-orange-400 text-white font-black text-xl rounded-full shadow-[0_8px_0_0_#c2410c] hover:scale-105 active:translate-y-1 active:shadow-none transition-all">
-            START JOURNEY
-        </button>
+        <h1 class="text-4xl font-serif font-bold text-amber-500 mb-2">The Ember Watcher</h1>
+        <p class="text-stone-500 text-[10px] uppercase tracking-[0.3em] mb-10">An Environmental Saga</p>
+        <button id="start-btn" class="px-10 py-4 bg-amber-600 text-white font-bold rounded-full shadow-2xl active:scale-95 transition-all">ENTER THE WOODS</button>
     </div>
 
-    <header class="w-full bg-emerald-800 py-8 text-center shadow-lg">
-        <h1 class="text-3xl font-bubble text-orange-300">The Ember Watcher</h1>
+    <header class="w-full bg-stone-900 py-8 px-6 text-center">
+        <h1 class="text-2xl font-serif font-bold text-amber-500">The Ember Watcher</h1>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 py-8 md:py-12">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            
-            <!-- Story Image -->
-            <div class="relative aspect-square rounded-[3rem] overflow-hidden bg-white border-8 border-white shadow-2xl">
-                <img id="active-image" class="w-full h-full object-cover transition-opacity duration-500" src="" alt="Story Art">
-                <div class="absolute bottom-6 left-6 right-6">
-                    <div class="bg-white/90 px-6 py-2 rounded-2xl shadow-lg border-2 border-emerald-100 text-center">
-                        <p id="scene-caption" class="text-emerald-900 font-bold text-xs uppercase tracking-widest"></p>
-                    </div>
-                </div>
+    <main class="max-w-4xl mx-auto px-4 py-6" id="swipe-container">
+        <!-- Visual Viewport (Smaller 1/4 size feel) -->
+        <div class="relative w-full aspect-[4/3] md:aspect-video rounded-[2rem] overflow-hidden bg-stone-100 shadow-inner flex items-center justify-center mb-6">
+            <!-- The Image is constrained to be small (1/4 of container area effectively) -->
+            <img id="active-image" class="w-48 h-48 md:w-64 md:h-64 object-cover rounded-3xl shadow-2xl transition-opacity duration-500 opacity-0" src="" alt="Scene">
+            <div class="absolute bottom-4 text-center w-full">
+                <span id="scene-caption" class="bg-black/50 text-white text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-bold backdrop-blur-sm"></span>
             </div>
+        </div>
 
-            <!-- Story Controls & Text -->
-            <div class="flex flex-col space-y-6">
-                <div class="flex justify-between items-center">
-                    <div class="flex bg-emerald-100 p-1 rounded-xl" id="lang-menu">
-                        <button data-lang="en" class="px-4 py-2 rounded-lg text-xs font-bold bg-white shadow-sm transition-all">EN</button>
-                        <button data-lang="tc" class="px-4 py-2 rounded-lg text-xs font-bold text-emerald-700 transition-all">繁</button>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button id="prev-btn" class="nav-btn w-12 h-12 rounded-xl flex items-center justify-center text-emerald-800 text-xl font-bold">←</button>
-                        <span id="scene-index" class="font-bubble text-lg text-emerald-800">01 / 06</span>
-                        <button id="next-btn" class="nav-btn w-12 h-12 rounded-xl flex items-center justify-center text-emerald-800 text-xl font-bold">→</button>
-                    </div>
-                </div>
-
-                <div class="story-card p-10 min-h-[350px] flex items-center">
-                    <div id="narrative-text" class="text-xl md:text-2xl text-stone-700 leading-relaxed font-medium"></div>
-                </div>
-
-                <!-- Progress Dots -->
-                <div class="flex justify-between px-4" id="dot-map"></div>
+        <!-- Controls -->
+        <div class="flex justify-between items-center mb-6 bg-white p-2 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex gap-1" id="lang-menu">
+                <button data-lang="en" class="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-amber-500 text-white shadow-sm">EN</button>
+                <button data-lang="tc" class="px-3 py-1.5 rounded-lg text-[10px] font-bold text-stone-500">繁</button>
+                <button data-lang="sc" class="px-3 py-1.5 rounded-lg text-[10px] font-bold text-stone-500">简</button>
             </div>
+            <div class="flex items-center gap-4">
+                <button id="prev-btn" class="p-2 text-stone-400 hover:text-amber-600 disabled:opacity-20">&larr;</button>
+                <span id="scene-index" class="text-[10px] font-bold font-mono">01 / 06</span>
+                <button id="next-btn" class="p-2 text-stone-400 hover:text-amber-600 disabled:opacity-20">&rarr;</button>
+            </div>
+        </div>
+
+        <!-- Story Text -->
+        <div class="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-stone-100 min-h-[300px] flex items-center mb-8">
+            <div id="narrative-text" class="text-lg md:text-xl font-serif text-stone-800 leading-relaxed italic"></div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="relative h-1 bg-stone-200 rounded-full overflow-hidden">
+            <div id="scroll-bar" class="absolute h-full bg-amber-500 transition-all duration-500" style="width: 16.6%"></div>
         </div>
     </main>
 
+    <footer class="py-10 text-center text-stone-400 text-[9px] uppercase tracking-widest">
+        Swipe or Use Arrows to Navigate
+    </footer>
+
     <script>
-        // Data containing text and hardcoded image URLs
         const storyData = [
             {
-                en: "In the Whispering Woods lived Silas the fox. He was fascinated by the clicking boxes that birthed 'The Red Flower'.",
-                tc: "在低語森林中住著狐狸西拉斯。他著迷於那些能孕育出「紅花」的咔噠盒子。",
-                // Hardcoded the generated image for Scene 1
-                img: "Photo1.png",
-                caption: "Scene 1: The Red Flower Wakes"
+                en: "In the heart of the Whispering Woods, Silas the fox didn't just hunt; he observed. He was fascinated by the two-legged 'Walkers' and their clicking technology, especially the boxes that birthed 'The Red Flower.' While others honed their pounce, Silas analyzed the patterns of those who brought the flame.",
+                tc: "在低語森林的核心地帶，狐狸西拉斯不只是捕獵；他還在觀察。他著迷於那些行走者及其技術，尤其是那些能孕育出「紅花」的盒子。當其他狐狸磨練捕獵技巧時，西拉斯卻在分析那些帶來火焰的人。",
+                sc: "在低语森林的核心地带，狐狸西拉斯不只是捕猎；他还在观察。他着迷于那些行走者及其技术，尤其是那些能孕育出“红花”的盒子。当其他狐狸磨练捕猎技巧时，西拉斯却在分析那些带来火焰的人。",
+                img: "Photo1.png", caption: "The Observer"
             },
             {
-                en: "A circle of stones was left behind. Deep in the ash, a single ember pulsed like a heartbeat, waiting for wind.",
-                tc: "一圈石頭被留在了原地。在灰燼深處，一顆餘燼像心臟般跳動，等待著風。",
-                img: "Photo2.png",
-                caption: "Scene 2: The Pulse"
+                en: "August brought a sweltering heat that turned the woods into a tinderbox. Silas tracked a group of campers who left behind a circle of smooth river stones. Deep within the white ash they abandoned, a single, stubborn ember pulsed with residual energy, waiting for a breath of wind to catalyze disaster.",
+                tc: "八月悶熱難耐，乾枯的植被就像個火藥桶。西拉斯追蹤了一群營地使用者，他們留下了一個由鵝卵石組成的圈。在他們遺棄的白灰深處，一顆頑強的餘燼正跳動著殘餘能量，等待風來催化災難。",
+                sc: "八月闷热难耐，干枯的植被就像个火药桶。西拉斯追踪了一群营地使用者，他们留下了一个由鹅卵石组成的圈。在他们遗弃的白灰深处，一颗顽强的余烬正跳动着残余能量，等待风来催化灾难。",
+                img: "Photo2.png", caption: "The Pulse"
             },
             {
-                en: "The forest was dry. A small orange tongue of flame began licking at pine needles, heading for the Great Cedar.",
-                tc: "森林很乾燥。一小條橙色的火舌開始舔食松針，直衝向大雪松。",
-                img: "https://images.unsplash.com/photo-1580974511812-4b7197050a3b?auto=format&fit=crop&q=80&w=800",
-                caption: "Scene 3: The Danger Grows"
+                en: "The equilibrium shattered when a dry leaf danced into the containment circle. It ignited instantly. Small, orange tongues of flame began licking at the desiccated pine needles, heading straight for the Great Cedar, the ancient heart of the forest. The threat was no longer theoretical.",
+                tc: "當一片枯葉舞進圈中時，平衡崩潰了。它瞬間被點燃。橙色的小火舌開始舔食乾枯的松針，直衝向大雪松——森林古老的心臟。威脅不再是理論上的。",
+                sc: "当一片枯叶舞进圈中时，平衡崩溃了。它瞬间被点燃。橙色的小火舌开始舔食干枯的松针，直冲向大雪松——森林古老的心脏。威胁不再是理论上的。",
+                img: "scene3.png", caption: "The Ignition"
             },
             {
-                en: "Silas dashed to the creek. He dug through the dust with frantic paws to find damp clay.",
-                tc: "西拉斯衝向小溪。他瘋狂地挖開塵土尋找濕潤的黏土。",
-                img: "https://images.unsplash.com/photo-1543393169-29e92404975d?auto=format&fit=crop&q=80&w=800",
-                caption: "Scene 4: The Clever Plan"
+                en: "Silas didn't waste time on useless barking. His plan required swift navigation to the Dry Creek. With frantic paws, he clawed through the surface dust to reach the damp silt and heavy clay hidden beneath—the only effective barrier against a heat of this magnitude.",
+                tc: "西拉斯並沒有浪費時間在無用的吠叫上。他的計劃需要快速到達乾涸溪。他瘋狂地挖開地表塵土，尋找隱藏在底下的潮濕淤泥和沈重黏土——這是對抗這種程度熱量的唯一有效屏障。",
+                sc: "西拉斯并没有浪费时间在无用的吠叫上。他的计划需要快速到达干涸溪。他疯狂地挖开地表尘土，寻找隐藏在底下的潮湿淤泥和沉重黏土——这是对抗这种程度热量的唯一有效屏障。",
+                img: "scene4.png", caption: "The Resource"
             },
             {
-                en: "With a powerful leap, he smothered the fire's heart with the wet earth and heavy mud.",
-                tc: "伴隨奮力一跳，他用濕土和厚重的泥漿悶熄了火焰的核心。",
-                img: "https://images.unsplash.com/photo-1462212210333-335063b676bc?auto=format&fit=crop&q=80&w=800",
-                caption: "Scene 5: The Hero's Leap"
+                en: "Muscles straining, Silas dragged a heavy, mud-soaked canvas left by the campers towards the heat. With a powerful heave, he flipped the mud-soaked fabric directly over the fire's heart, using kinetic energy and the smothering mud to achieve immediate containment.",
+                tc: "西拉斯肌肉緊繃，將一塊浸透泥水的沈重帆布拖向熱源。他猛力一甩，將浸透泥水的織物翻蓋在火源核心上，利用動能和窒息性泥土實現立即封鎖。",
+                sc: "西拉斯肌肉紧绷，将一块浸透泥水的沉重帆布拖向热源。他猛力一甩，将浸透泥水的织物翻盖在火源核心上，利用动能和窒息性泥土实现立即封锁。",
+                img: "scene5.png", caption: "The Smothering"
             },
             {
-                en: "By dawn, the woods were safe. Silas rested by the stream, cooling his sore paws. He had saved the forest.",
-                tc: "黎明時分，森林平安無事。西拉斯在溪邊休息，冷卻他酸痛的爪子。他拯救了森林。",
-                img: "https://images.unsplash.com/photo-1448375232540-44afc0c533f3?auto=format&fit=crop&q=80&w=800",
-                caption: "Scene 6: A New Dawn"
+                en: "By dawn, the Great Cedar stood unharmed. Silas rested by the stream, cooling his sore paws in the water. He had neutralized the crisis not with teeth and claws, but with a strategy of environmental resource allocation and consequence modeling.",
+                tc: "黎明時分，大雪松安然無恙。西拉斯在溪邊休息，在水中冷卻酸痛的爪子。他不是靠牙齒和利爪，而是靠資源分配和後果建模的策略化解了危機。",
+                sc: "黎明时分，大雪松安然无恙。西拉斯在溪边休息，在水中冷却酸痛的爪子。他不是靠牙齿和利爪，而是靠资源分配和后果建模的策略化解了危机。",
+                img: "scene6.png", caption: "The Success"
             }
         ];
 
-        let current = 0;
-        let lang = 'en';
+        let state = { current: 0, lang: 'en', touchStartX: 0, touchEndX: 0 };
 
-        function render() {
-            const data = storyData[current];
-            const imgEl = document.getElementById('active-image');
+        // Swipe Handlers
+        const container = document.getElementById('swipe-container');
+        container.addEventListener('touchstart', e => { state.touchStartX = e.changedTouches[0].screenX; });
+        container.addEventListener('touchend', e => {
+            state.touchEndX = e.changedTouches[0].screenX;
+            const diff = state.touchStartX - state.touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0 && state.current < 5) updateScene(state.current + 1);
+                else if (diff < 0 && state.current > 0) updateScene(state.current - 1);
+            }
+        });
+
+        function updateScene(idx) {
+            state.current = idx;
+            const data = storyData[idx];
+            const img = document.getElementById('active-image');
             
-            imgEl.style.opacity = 0;
-            setTimeout(() => {
-                imgEl.src = data.img;
-                imgEl.style.opacity = 1;
-            }, 200);
-
-            document.getElementById('narrative-text').innerText = data[lang];
+            img.style.opacity = 0;
+            document.getElementById('narrative-text').innerHTML = `<p class="fade-in">${data[state.lang]}</p>`;
             document.getElementById('scene-caption').innerText = data.caption;
-            document.getElementById('scene-index').innerText = `${String(current + 1).padStart(2, '0')} / 06`;
-            
-            document.getElementById('prev-btn').disabled = current === 0;
-            document.getElementById('next-btn').disabled = current === 5;
+            document.getElementById('scene-index').innerText = `${String(idx + 1).padStart(2, '0')} / 06`;
+            document.getElementById('scroll-bar').style.width = `${((idx + 1) / 6) * 100}%`;
+            document.getElementById('prev-btn').disabled = idx === 0;
+            document.getElementById('next-btn').disabled = idx === 5;
 
-            // Render Dots
-            const dotMap = document.getElementById('dot-map');
-            dotMap.innerHTML = '';
-            storyData.forEach((_, i) => {
-                const dot = document.createElement('div');
-                dot.className = `w-4 h-4 rounded-full border-4 transition-all duration-300 ${i <= current ? 'bg-orange-400 border-white scale-110' : 'bg-emerald-100 border-white'}`;
-                dotMap.appendChild(dot);
-            });
+            setTimeout(() => {
+                img.src = data.img;
+                img.onload = () => img.style.opacity = 1;
+                // Fallback for broken local files in preview
+                img.onerror = () => { img.src = "https://via.placeholder.com/400x400?text=Please+Save+Scene+" + (idx+1); img.style.opacity = 1; };
+            }, 200);
         }
 
         document.getElementById('start-btn').onclick = () => {
-            const pad = document.getElementById('launch-pad');
-            pad.style.opacity = '0';
-            setTimeout(() => {
-                pad.remove();
-                render();
-            }, 500);
+            document.getElementById('launch-pad').style.opacity = 0;
+            setTimeout(() => { document.getElementById('launch-pad').remove(); updateScene(0); }, 600);
         };
 
-        document.getElementById('next-btn').onclick = () => { if (current < 5) { current++; render(); } };
-        document.getElementById('prev-btn').onclick = () => { if (current > 0) { current--; render(); } };
-        
+        document.getElementById('next-btn').onclick = () => updateScene(state.current + 1);
+        document.getElementById('prev-btn').onclick = () => updateScene(state.current - 1);
         document.getElementById('lang-menu').onclick = (e) => {
             if (e.target.dataset.lang) {
-                lang = e.target.dataset.lang;
+                state.lang = e.target.dataset.lang;
                 document.querySelectorAll('#lang-menu button').forEach(b => {
-                    b.classList.remove('bg-white', 'shadow-sm', 'text-emerald-900');
-                    b.classList.add('text-emerald-700');
+                    b.className = "px-3 py-1.5 rounded-lg text-[10px] font-bold text-stone-500";
                 });
-                e.target.classList.add('bg-white', 'shadow-sm', 'text-emerald-900');
-                render();
+                e.target.className = "px-3 py-1.5 rounded-lg text-[10px] font-bold bg-amber-500 text-white shadow-sm";
+                updateScene(state.current);
             }
         };
     </script>
