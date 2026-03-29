@@ -77,7 +77,7 @@
     </footer>
 
     <script>
-        const apiKey = ""; 
+        const apiKey = "AIzaSyDBbaBtw9TNCk0OfBlE7Ae8X6gdXE8a2mU"; 
         const storyData = [
             {
                 en: "In the green woods lived Silas, a very smart red fox. While others liked to hunt, Silas liked to watch. He watched the humans and was curious about their tools and the bright 'Red Flower' they called fire.",
@@ -148,6 +148,15 @@
                 return;
             }
             
+            // Deployment check: If deployed to GitHub/External, apiKey must be provided manually.
+            if (!apiKey) {
+                console.error("API Key is missing. TTS only works in the Canvas preview or if you provide your own Gemini API key.");
+                const btnText = document.getElementById('read-btn-text');
+                btnText.innerText = "Key Missing";
+                setTimeout(resetAudioState, 3000);
+                return;
+            }
+
             let voiceName = "Kore";
             let instruction = "Please read this in a natural tone:";
             
@@ -168,7 +177,7 @@
                 }
             };
 
-            const maxRetries = 3;
+            const maxRetries = 5;
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const controller = new AbortController();
@@ -182,7 +191,10 @@
                     });
                     
                     clearTimeout(timeoutId);
-                    if (!response.ok) throw new Error("Server Busy");
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errorBody}`);
+                    }
 
                     const result = await response.json();
                     const audioData = result.candidates[0].content.parts[0].inlineData;
@@ -201,16 +213,22 @@
                     state.currentAudio = new Audio(audioUrl);
                     state.currentAudio.onplay = () => btnText.innerText = "Playing";
                     state.currentAudio.onended = resetAudioState;
-                    state.currentAudio.onerror = resetAudioState;
+                    state.currentAudio.onerror = (e) => {
+                        console.error("Audio Playback Error:", e);
+                        resetAudioState();
+                    };
                     state.currentAudio.play();
                     return;
                 } catch (err) {
+                    console.warn(`TTS Attempt ${i + 1} failed:`, err);
                     if (i === maxRetries - 1) {
-                        btnText.innerText = "Error - Retry";
+                        btnText.innerText = "API Error";
                         setTimeout(resetAudioState, 2000);
                     } else {
-                        btnText.innerText = `Retry ${i+1}...`;
-                        await new Promise(r => setTimeout(r, 2000));
+                        // Exponential backoff
+                        const delay = Math.pow(2, i) * 1000;
+                        btnText.innerText = "Retrying...";
+                        await new Promise(r => setTimeout(r, delay));
                     }
                 }
             }
