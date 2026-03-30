@@ -58,6 +58,8 @@
             </div>
         </div>
 
+        <div id="api-error-msg" class="hidden bg-red-50 text-red-600 text-[10px] p-2 rounded-lg mb-6 border border-red-100 font-bold text-center"></div>
+
         <div class="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-stone-100 min-h-[300px] flex flex-col justify-center mb-8 relative">
             <div id="narrative-text" class="text-lg md:text-xl font-serif text-stone-800 leading-relaxed italic mb-6"></div>
             
@@ -82,8 +84,8 @@
          */
         const manualApiKey = "AIzaSyCewaXFarWAUGdH00Xw-dMm3v1UpPv9Ch0"; 
         
-        // 強制檢查：如果在 GitHub (非預覽環境)，務必確保 manualApiKey 有值
-        const apiKey = (typeof __api_key !== 'undefined' && __api_key !== "") ? __api_key : manualApiKey;
+        // 強制完全使用您的 manualApiKey 來進行測試
+        const apiKey = manualApiKey;
 
         const storyData = [
             {
@@ -150,6 +152,9 @@
         }
 
         async function speakText(text, lang) {
+            const errorMsgDiv = document.getElementById('api-error-msg');
+            errorMsgDiv.classList.add('hidden');
+
             if (state.isPlaying) {
                 resetAudioState();
                 return;
@@ -194,7 +199,7 @@
                     
                     if (!response.ok) {
                         const errData = await response.json();
-                        throw new Error(errData.error?.message || "API Error");
+                        throw new Error(errData.error?.message || `HTTP ${response.status}`);
                     }
 
                     const result = await response.json();
@@ -220,6 +225,8 @@
                     console.error(`TTS Error (Attempt ${i + 1}):`, err);
                     if (i === maxRetries - 1) {
                         btnText.innerText = "API 錯誤";
+                        errorMsgDiv.innerText = `API 錯誤: ${err.message} (請檢查金鑰權限或網域限制)`;
+                        errorMsgDiv.classList.remove('hidden');
                         setTimeout(resetAudioState, 2000);
                     } else {
                         const delay = Math.pow(2, i) * 1000;
@@ -242,6 +249,7 @@
 
         function updateScene(idx) {
             resetAudioState();
+            document.getElementById('api-error-msg').classList.add('hidden');
             state.current = idx;
             const data = storyData[idx];
             const img = document.getElementById('active-image');
