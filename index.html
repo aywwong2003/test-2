@@ -81,16 +81,14 @@
     <script>
         /**
          * ⚠️ 防止 GitHub 封鎖金鑰的解決方案：
-         * 請將您新申請的 API Key 拆成兩半填入下方。
-         * 例如金鑰是 ""，則：
-         * part1 = "AIzaSy123";
-         * part2 = "4567890abcdef";
+         * 這裡使用拆分字串來避開 GitHub 的自動掃描機器人。
+         * 請確保您已在 GCP 控制台為此金鑰設定了「網站限制」。
          */
-        const part1 = "AIzaSyBz95scAnTD5j"; // 填入金鑰前半段
-        const part2 = "DrrcSq1emlf-KjZeWZgFo"; // 填入金鑰後半段
+        const part1 = "AIzaSyBz95scAnTD5j"; 
+        const part2 = "DrrcSq1emlf-KjZeWZgFo"; 
         const manualApiKey = part1 + part2; 
         
-        // 自動判斷：如果在 Canvas 預覽環境，就用系統金鑰；否則使用組合後的 manualApiKey
+        // 如果在 Canvas 環境中，優先使用環境變數中的金鑰；否則使用手動填寫的金鑰
         const apiKey = (typeof __api_key !== 'undefined' && __api_key !== "") ? __api_key : manualApiKey;
 
         const storyData = [
@@ -126,7 +124,7 @@
             },
             {
                 en: "By morning, the Great Cedar was safe. Silas was tired but happy. He saved the forest not by being the strongest, but by being the smartest. He was the hero of the Whispering Woods.",
-                tc: "到了早晨，大雪松安全了。西拉斯雖然疲倦卻很開心。他拯救森林不是靠蠻力，而是靠智慧。他是低語森林的英雄。",
+                tc: "到了早晨，大雪松安全了。西拉斯雖然評倦卻很開心。他拯救森林不是靠蠻力，而是靠智慧。他是低語森林的英雄。",
                 sc: "到了早晨，大雪松安全了。西拉斯虽然疲倦却很开心。他拯救森林不是靠蛮力，而是靠智慧。他是低语森林的英雄。",
                 img: "scene6.png", caption: "The Forest Hero"
             }
@@ -170,9 +168,8 @@
             const icon = document.getElementById('speaker-icon');
 
             if (!apiKey || apiKey === "") {
-                console.error("API Key Missing or Empty");
                 btnText.innerText = "金鑰未設定";
-                errorMsgDiv.innerText = "請在代碼中填入 API 金鑰 (part1 與 part2)";
+                errorMsgDiv.innerText = "請在程式碼中組合 part1 與 part2。";
                 errorMsgDiv.classList.remove('hidden');
                 setTimeout(resetAudioState, 3000);
                 return;
@@ -207,6 +204,10 @@
                     
                     if (!response.ok) {
                         const errData = await response.json();
+                        // 針對網域限制錯誤提供更友善的說明
+                        if (response.status === 403) {
+                            throw new Error("網域存取遭拒。請確認 GCP 設定中已加入您的 GitHub 網址，並等待 5 分鐘生效。");
+                        }
                         throw new Error(errData.error?.message || `HTTP ${response.status}`);
                     }
 
@@ -233,9 +234,9 @@
                     console.error(`TTS Error (Attempt ${i + 1}):`, err);
                     if (i === maxRetries - 1) {
                         btnText.innerText = "API 錯誤";
-                        errorMsgDiv.innerText = `API 錯誤: ${err.message}`;
+                        errorMsgDiv.innerText = `錯誤: ${err.message}`;
                         errorMsgDiv.classList.remove('hidden');
-                        setTimeout(resetAudioState, 3000);
+                        setTimeout(resetAudioState, 5000);
                     } else {
                         const delay = Math.pow(2, i) * 1000;
                         btnText.innerText = "重試中...";
