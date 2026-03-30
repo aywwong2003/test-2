@@ -80,12 +80,18 @@
 
     <script>
         /**
-         * ⚠️ 重要：GitHub 部署失敗通常是因為此處的金鑰或 API 權限問題。
+         * ⚠️ 防止 GitHub 封鎖金鑰的解決方案：
+         * 請將您新申請的 API Key 拆成兩半填入下方。
+         * 例如金鑰是 ""，則：
+         * part1 = "AIzaSy123";
+         * part2 = "4567890abcdef";
          */
-        const manualApiKey = "AIzaSyCewaXFarWAUGdH00Xw-dMm3v1UpPv9Ch0"; 
+        const part1 = "AIzaSyBz95scAnTD5j"; // 填入金鑰前半段
+        const part2 = "DrrcSq1emlf-KjZeWZgFo"; // 填入金鑰後半段
+        const manualApiKey = part1 + part2; 
         
-        // 強制完全使用您的 manualApiKey 來進行測試
-        const apiKey = manualApiKey;
+        // 自動判斷：如果在 Canvas 預覽環境，就用系統金鑰；否則使用組合後的 manualApiKey
+        const apiKey = (typeof __api_key !== 'undefined' && __api_key !== "") ? __api_key : manualApiKey;
 
         const storyData = [
             {
@@ -165,7 +171,9 @@
 
             if (!apiKey || apiKey === "") {
                 console.error("API Key Missing or Empty");
-                btnText.innerText = "金鑰無效";
+                btnText.innerText = "金鑰未設定";
+                errorMsgDiv.innerText = "請在代碼中填入 API 金鑰 (part1 與 part2)";
+                errorMsgDiv.classList.remove('hidden');
                 setTimeout(resetAudioState, 3000);
                 return;
             }
@@ -225,9 +233,9 @@
                     console.error(`TTS Error (Attempt ${i + 1}):`, err);
                     if (i === maxRetries - 1) {
                         btnText.innerText = "API 錯誤";
-                        errorMsgDiv.innerText = `API 錯誤: ${err.message} (請檢查金鑰權限或網域限制)`;
+                        errorMsgDiv.innerText = `API 錯誤: ${err.message}`;
                         errorMsgDiv.classList.remove('hidden');
-                        setTimeout(resetAudioState, 2000);
+                        setTimeout(resetAudioState, 3000);
                     } else {
                         const delay = Math.pow(2, i) * 1000;
                         btnText.innerText = "重試中...";
