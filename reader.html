@@ -47,7 +47,6 @@
 
                 <!-- Right Section: Navigation + Audio -->
                 <div class="flex items-center gap-4">
-                    <!-- Integrated Navigation Arrows and Counter -->
                     <div class="flex items-center gap-2 bg-stone-50 p-1 rounded-full border border-stone-100">
                         <button id="prev-btn" class="flex items-center justify-center w-10 h-10 rounded-full bg-white text-stone-400 hover:text-amber-600 shadow-sm disabled:opacity-0 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -76,14 +75,20 @@
     </main>
 
     <script>
-        const apiKey = "AIzaSyAn0uzAGSJYsAodyRK97VE-qvPbJ7SSQlw"; 
+        /**
+         * API KEY CONFIGURATION
+         * The error "Limit Reached" means this key has run out of its free quota.
+         * Please generate a new key and paste it below.
+         */
+        const apiKey = "AIzaSyDNqhmeDDjA7VuYMcabYkMetXsAeP9vV5Y"; 
 
         let state = {
             key: new URLSearchParams(window.location.search).get('story') || 'clever-fox',
             idx: 0,
             lang: 'en',
             audio: null,
-            data: []
+            data: [],
+            isFetching: false
         };
 
         function loadStoryData() {
@@ -92,22 +97,24 @@
                 const path = `${state.key}/story-data.js`;
                 script.src = path;
                 script.onload = () => {
-                    if (typeof storyData !== 'undefined') {
-                        state.data = storyData;
+                    const content = window.storyData || (typeof storyData !== 'undefined' ? storyData : null);
+                    if (content) {
+                        state.data = content;
                         resolve();
                     }
                 };
                 script.onerror = () => {
                     const fallback = 'story-data.js';
-                    const fallbackScript = document.createElement('script');
-                    fallbackScript.src = fallback;
-                    fallbackScript.onload = () => {
-                        if (typeof storyData !== 'undefined') {
-                            state.data = storyData;
+                    const fs = document.createElement('script');
+                    fs.src = fallback;
+                    fs.onload = () => {
+                        const content = window.storyData || (typeof storyData !== 'undefined' ? storyData : null);
+                        if (content) {
+                            state.data = content;
                             resolve();
                         }
                     };
-                    document.head.appendChild(fallbackScript);
+                    document.head.appendChild(fs);
                 };
                 document.head.appendChild(script);
             });
@@ -126,6 +133,14 @@
                     }
                 })
             });
+            
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                const msg = err.error?.message || "";
+                if (response.status === 429) throw new Error("QUOTA_LIMIT");
+                if (response.status === 403) throw new Error("KEY_INVALID");
+                throw new Error(msg || "Speech API Error");
+            }
             return await response.json();
         }
 
@@ -151,49 +166,83 @@
         }
 
         async function speak() {
+            const status = document.getElementById('audio-status');
+
             if (state.audio) {
                 state.audio.pause();
                 state.audio = null;
                 updateAudioUI(false);
                 return;
             }
-            const status = document.getElementById('audio-status');
+
+            if (state.isFetching) return;
+            
             status.innerText = "Loading...";
             updateAudioUI(true);
+            state.isFetching = true;
+
             try {
-                if (!state.data || !state.data[state.idx]) throw new Error("No data");
                 const text = state.data[state.idx][state.lang];
                 const res = await fetchTTS(text, state.lang);
+                
                 const part = res.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
                 const base64 = part?.inlineData?.data;
-                if (!base64) throw new Error("No audio data");
+                
+                if (!base64) throw new Error("Audio empty");
+
                 const binary = atob(base64);
                 const pcm = new Int16Array(binary.length / 2);
                 for (let i = 0; i < binary.length; i += 2) {
                     pcm[i / 2] = (binary.charCodeAt(i + 1) << 8) | binary.charCodeAt(i);
                 }
+
                 const blob = pcmToWav(pcm);
                 const audioUrl = URL.createObjectURL(blob);
+                
                 state.audio = new Audio(audioUrl);
-                state.audio.onplay = () => status.innerText = "Playing";
-                state.audio.onended = () => { state.audio = null; updateAudioUI(false); URL.revokeObjectURL(audioUrl); };
-                state.audio.play();
+                state.audio.onplay = () => {
+                    status.innerText = "Playing";
+                    state.isFetching = false;
+                };
+                state.audio.onended = () => { 
+                    state.audio = null; 
+                    updateAudioUI(false); 
+                    URL.revokeObjectURL(audioUrl); 
+                };
+                state.audio.onerror = () => {
+                    throw new Error("Playback failed");
+                };
+                
+                await state.audio.play();
             } catch (e) {
-                status.innerText = "Error";
-                setTimeout(() => updateAudioUI(false), 2000);
+                console.error(e);
+                if (e.message === "QUOTA_LIMIT") {
+                    status.innerText = "Limit Reached";
+                } else if (e.message === "KEY_INVALID") {
+                    status.innerText = "Key Error";
+                } else {
+                    status.innerText = "Error";
+                }
+                state.isFetching = false;
+                setTimeout(() => updateAudioUI(false), 3000);
             }
         }
 
-        function updateAudioUI(playing) {
+        function updateAudioUI(active) {
             const status = document.getElementById('audio-status');
             const icon = document.getElementById('speaker-icon');
-            if (playing) icon.classList.add('speaker-active');
-            else { icon.classList.remove('speaker-active'); status.innerText = "Listen"; }
+            if (active) {
+                icon.classList.add('speaker-active');
+            } else {
+                icon.classList.remove('speaker-active');
+                status.innerText = "Listen";
+            }
         }
 
         function render() {
             if (!state.data || state.data.length === 0) return;
             if (state.audio) { state.audio.pause(); state.audio = null; updateAudioUI(false); }
+            
             const scene = state.data[state.idx];
             document.getElementById('story-text').innerText = scene[state.lang];
             const rawTitle = state.key.replace(/-/g, ' ');
@@ -201,6 +250,7 @@
             document.getElementById('page-counter').innerText = `PAGE ${state.idx + 1} / ${state.data.length}`;
             document.getElementById('prev-btn').disabled = state.idx === 0;
             document.getElementById('next-btn').disabled = state.idx === state.data.length - 1;
+            
             const imgEl = document.getElementById('story-image');
             const placeholder = document.getElementById('image-placeholder');
             if (scene.img) {

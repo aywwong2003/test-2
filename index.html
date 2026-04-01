@@ -31,7 +31,8 @@
         }
 
         .fade-in {
-            animation: fadeIn 1s ease-out;
+            animation: fadeIn 1s ease-out forwards;
+            opacity: 0;
         }
 
         @keyframes fadeIn {
@@ -52,71 +53,8 @@
         </header>
 
         <!-- Story Selection Grid -->
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 fade-in" style="animation-delay: 0.2s;">
-            
-            <!-- Story 1: Clever Fox -->
-            <div class="story-card bg-white rounded-3xl overflow-hidden border border-slate-200 flex flex-col">
-                <div class="h-48 bg-amber-100 flex items-center justify-center relative overflow-hidden">
-                    <div class="absolute inset-0 opacity-20 pointer-events-none">
-                        <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <path d="M0,100 C30,80 70,80 100,100 L100,0 L0,0 Z" fill="#f59e0b"></path>
-                        </svg>
-                    </div>
-                    <span class="text-7xl relative z-10">🦊</span>
-                </div>
-                <div class="p-6 flex flex-col flex-grow">
-                    <h2 class="text-2xl font-serif font-bold text-slate-800 mb-2">The Clever Fox</h2>
-                    <p class="text-slate-600 mb-6 flex-grow leading-relaxed text-sm">
-                        Journey deep into the Ember Woods and discover how wit and wisdom illuminate the night.
-                    </p>
-                    <a href="reader.html?story=clever-fox" class="block w-full text-center bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-colors duration-200 shadow-lg shadow-amber-200/50">
-                        Start Adventure
-                    </a>
-                </div>
-            </div>
-
-            <!-- Story 2: Kind Sheep -->
-            <div class="story-card bg-white rounded-3xl overflow-hidden border border-slate-200 flex flex-col">
-                <div class="h-48 bg-sky-100 flex items-center justify-center relative overflow-hidden">
-                    <div class="absolute inset-0 opacity-20 pointer-events-none">
-                        <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <path d="M0,100 C30,80 70,80 100,100 L100,0 L0,0 Z" fill="#0ea5e9"></path>
-                        </svg>
-                    </div>
-                    <span class="text-7xl relative z-10">🐑</span>
-                </div>
-                <div class="p-6 flex flex-col flex-grow">
-                    <h2 class="text-2xl font-serif font-bold text-slate-800 mb-2">The Kind Sheep</h2>
-                    <p class="text-slate-600 mb-6 flex-grow leading-relaxed text-sm">
-                        A heartwarming tale from the Silver Mountains about the true strength of a gentle spirit.
-                    </p>
-                    <a href="reader.html?story=kind-sheep" class="block w-full text-center bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-xl transition-colors duration-200 shadow-lg shadow-sky-200/50">
-                        Start Adventure
-                    </a>
-                </div>
-            </div>
-
-            <!-- Story 3: Shy Bear -->
-            <div class="story-card bg-white rounded-3xl overflow-hidden border border-slate-200 flex flex-col">
-                <div class="h-48 bg-emerald-100 flex items-center justify-center relative overflow-hidden">
-                    <div class="absolute inset-0 opacity-20 pointer-events-none">
-                        <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <path d="M0,100 C30,80 70,80 100,100 L100,0 L0,0 Z" fill="#10b981"></path>
-                        </svg>
-                    </div>
-                    <span class="text-7xl relative z-10">🧸</span>
-                </div>
-                <div class="p-6 flex flex-col flex-grow">
-                    <h2 class="text-2xl font-serif font-bold text-slate-800 mb-2">The Shy Bear</h2>
-                    <p class="text-slate-600 mb-6 flex-grow leading-relaxed text-sm">
-                        Explore the quiet Whispering Woods and see how a little courage can bloom in the heart of a shy painter.
-                    </p>
-                    <a href="reader.html?story=shy-bear" class="block w-full text-center bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl transition-colors duration-200 shadow-lg shadow-emerald-200/50">
-                        Start Adventure
-                    </a>
-                </div>
-            </div>
-
+        <div id="story-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 fade-in" style="animation-delay: 0.2s;">
+            <!-- Content generated via JavaScript -->
         </div>
 
         <!-- Footer -->
@@ -125,5 +63,53 @@
         </footer>
     </div>
 
+    <!-- Load the catalog script -->
+    <script src="catalog.js"></script>
+    <script>
+        // Define color mapping for Tailwind
+        const colorClasses = {
+            amber: { bg: 'bg-amber-100', btn: 'bg-amber-500 hover:bg-amber-600 shadow-amber-200/50', accent: '#f59e0b' },
+            sky: { bg: 'bg-sky-100', btn: 'bg-sky-500 hover:bg-sky-600 shadow-sky-200/50', accent: '#0ea5e9' },
+            emerald: { bg: 'bg-emerald-100', btn: 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200/50', accent: '#10b981' },
+            rose: { bg: 'bg-rose-100', btn: 'bg-rose-500 hover:bg-rose-600 shadow-rose-200/50', accent: '#f43f5e' },
+            violet: { bg: 'bg-violet-100', btn: 'bg-violet-500 hover:bg-violet-600 shadow-violet-200/50', accent: '#8b5cf6' }
+        };
+
+        function renderGrid() {
+            const grid = document.getElementById('story-grid');
+            if (typeof storyCatalog === 'undefined') {
+                grid.innerHTML = '<p class="text-center col-span-full text-slate-400">Loading stories...</p>';
+                return;
+            }
+
+            grid.innerHTML = storyCatalog.map((story, index) => {
+                const theme = colorClasses[story.color] || colorClasses.amber;
+                return `
+                    <div class="story-card bg-white rounded-3xl overflow-hidden border border-slate-200 flex flex-col fade-in" style="animation-delay: ${0.1 * (index + 1)}s">
+                        <div class="h-48 ${theme.bg} flex items-center justify-center relative overflow-hidden">
+                            <div class="absolute inset-0 opacity-20 pointer-events-none">
+                                <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <path d="M0,100 C30,80 70,80 100,100 L100,0 L0,0 Z" fill="${theme.accent}"></path>
+                                </svg>
+                            </div>
+                            <span class="text-7xl relative z-10">${story.emoji}</span>
+                        </div>
+                        <div class="p-6 flex flex-col flex-grow">
+                            <h2 class="text-2xl font-serif font-bold text-slate-800 mb-2">${story.title}</h2>
+                            <p class="text-slate-600 mb-6 flex-grow leading-relaxed text-sm">
+                                ${story.description}
+                            </p>
+                            <a href="reader.html?story=${story.id}" class="block w-full text-center ${theme.btn} text-white font-bold py-3 px-4 rounded-xl transition-colors duration-200 shadow-lg">
+                                Start Adventure
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Initialize grid on load
+        window.addEventListener('DOMContentLoaded', renderGrid);
+    </script>
 </body>
 </html>
