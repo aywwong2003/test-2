@@ -26,5 +26,12 @@ const storyCatalog = [
         description: "Follow Pip on a grand adventure as he discovers that even the smallest paws can protect the entire meadow.",
         emoji: "🐰",
         color: "rose"
+    },
+    {
+        id: "forgetful-squirrel",
+        title: "The Forgetful Squirrel",
+        description: "Join Sammy in the Golden Grove as he learns that some of life's greatest gifts come from the things we forget.",
+        emoji: "🐿️",
+        color: "amber"
     }
 ];
